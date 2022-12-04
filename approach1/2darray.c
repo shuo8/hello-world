@@ -31,16 +31,31 @@ void print_usage(char **argv)
     printf("Usage:  %s -r length -c width\n", *argv);
 }
 
-void test(int r, int c) {
+void clear_cache() {
+    int temp;
+    int *arr = malloc(sizeof(int) * 4 * 1024 * 1024); // allocate 16 MB
+
+    for (int i = 0; i < 4194304; i++)
+        arr[i] = i;
+
+    for (int i = 0; i < 4194304; i++)
+        temp = arr[i];
+
+    free(arr);
+}
+
+void test(int r, int c, int flag) {
     struct timeval begin, middle, end;
     double duration;
     long unsigned num_b = sizeof(int) * r * c;
+
 	int (*arr)[c] = malloc(num_b);
     long unsigned num_kb = num_b / 1024;
     double num_mb = num_kb / 1024.0;
+/*
     printf("%ld bytes (equals %ld kb, %.2lf mb) have been allocated\n", num_b,
 	num_kb, num_mb);
-
+*/
     double total = 0;
     // Note that arr[i][j] is same as *(*(arr+i)+j)
 
@@ -53,6 +68,9 @@ void test(int r, int c) {
 
     int temp;
     for (int n = 0; n < TIMES; n++) {  
+        if (flag) {
+            clear_cache();
+        }
         gettimeofday(&begin, NULL);
         for (i = 0; i < r; i++)
             for (j = 0; j < c; j++) {
@@ -64,10 +82,14 @@ void test(int r, int c) {
         total += duration;
         // printf("Time: %f with the execution\n", duration);
     }
-    printf("Row based access time: %f\n", total / TIMES);
+    //printf("Row based access time: %f\n", total / TIMES);
+    printf("%f ", total / TIMES);
 
     total = 0;
     for (int n = 0; n < TIMES; n++) {
+        if (flag) {
+            clear_cache();
+        }
         gettimeofday(&begin, NULL);
         for (j = 0; j < c; j++)
             for (i = 0; i < r; i++) {
@@ -79,7 +101,8 @@ void test(int r, int c) {
         total += duration;
         // printf("Time: %f with the execution\n", duration);
     }
-    printf("Column based access time: %f\n\n", total / TIMES);
+    //printf("Column based access time: %f\n\n", total / TIMES);
+    printf("%f\n", total / TIMES);
 
     /* Code for further processing and free the
        dynamically allocated memory */
@@ -105,14 +128,14 @@ int main(int argc, char *argv[])
 			  abort ();
 		}
 
+    printf("cache won't be cleared before profiling\n");
 	for (r = 256; r <= 4096; r += 256) {
-		test(r, c);
+		test(r, c, 0);
+	}
+    printf("cache will be cleared before profiling\n");
+	for (r = 256; r <= 4096; r += 256) {
+		test(r, c, 1);
 	}
 
-/*
-	for (c = 64; c <= 4096; c += 64) {
-		test(1024, c);
-	}
-*/ 
     return 0;
 }
